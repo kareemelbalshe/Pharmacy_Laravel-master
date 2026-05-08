@@ -3,7 +3,12 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build"
+        "build": "vite build",
+        "serve": "php artisan serve",
+        "migrate": "php artisan migrate",
+        "migrate:seed": "php artisan migrate --seed",
+        "migrate:fresh": "php artisan migrate:refresh --seed",
+        "init": "php artisan key:generate && php artisan migrate --seed"
     },
     "devDependencies": {
         "@popperjs/core": "^2.11.6",
@@ -14,6 +19,8 @@
         "vite": "^5.0.0"
     },
     "dependencies": {
-        "chart.js": "^4.4.3"
+        "chart.js": "^4.4.3",
+        "laravel-echo": "^2.3.0",
+        "pusher-js": "^8.4.0"
     }
 }
