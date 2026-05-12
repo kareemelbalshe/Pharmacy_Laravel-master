@@ -12,11 +12,25 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // \App\Models\User::factory(10)->create();
+        // Create a default admin user
+        $admin = \App\Models\User::create([
+            'name' => 'Admin User',
+            'email' => 'admin@admin.com',
+            'phone' => '01234567890',
+            'password' => \Illuminate\Support\Facades\Hash::make('123456'),
+            'user_type' => 'admin',
+        ]);
 
-        // \App\Models\User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
+        \App\Models\Admin::create([
+            'user_id' => $admin->id,
+            'name' => 'Admin User',
+            'email' => 'admin@admin.com',
+            'password' => \Illuminate\Support\Facades\Hash::make('123456'),
+        ]);
+
+        // Call other seeders
+        $this->call([
+            DiseaseSeeder::class,
+        ]);
     }
 }

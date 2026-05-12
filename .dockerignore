@@ -1,0 +1,11 @@
+/node_modules
+/public/build
+/public/storage
+/storage/*.key
+/vendor
+.env
+.phpunit.result.cache
+docker-compose.yml
+Dockerfile
+.git
+.gitignore
