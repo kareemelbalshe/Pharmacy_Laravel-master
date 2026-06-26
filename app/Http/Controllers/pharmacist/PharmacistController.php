@@ -199,11 +199,22 @@ class PharmacistController extends Controller
 
     public function storeDrugs(Request $request)
     {
-        $jsonData = $request->getContent();
-        $selectedDrugs = json_decode($jsonData, true);
+        $selectedDrugs = null;
+        if ($request->has('selected_drugs')) {
+            $selectedDrugs = $request->input('selected_drugs');
+            if (is_string($selectedDrugs)) {
+                $selectedDrugs = json_decode($selectedDrugs, true);
+            }
+        } else {
+            $jsonData = $request->getContent();
+            $selectedDrugs = json_decode($jsonData, true);
+        }
 
-        if ($selectedDrugs === null) {
-            return response()->json(['message' => 'Invalid JSON format'], 400);
+        if ($selectedDrugs === null || !is_array($selectedDrugs)) {
+            if ($request->expectsJson() || $request->ajax() || $request->is('api/*')) {
+                return response()->json(['message' => 'Invalid JSON format'], 400);
+            }
+            return redirect()->back()->with('error', 'Invalid JSON format');
         }
 
         $validator = Validator::make(['selected_drugs' => $selectedDrugs], [
@@ -214,7 +225,10 @@ class PharmacistController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['message' => 'Validation error', 'errors' => $validator->errors()], 400);
+            if ($request->expectsJson() || $request->ajax() || $request->is('api/*')) {
+                return response()->json(['message' => 'Validation error', 'errors' => $validator->errors()], 400);
+            }
+            return redirect()->back()->withErrors($validator)->withInput();
         }
 
         foreach ($selectedDrugs as $drug) {
@@ -234,7 +248,11 @@ class PharmacistController extends Controller
             }
         }
 
-        return response()->json(['message' => 'Drugs added/updated to pharmacy successfully!'], 201);
+        if ($request->expectsJson() || $request->ajax() || $request->is('api/*')) {
+            return response()->json(['message' => 'Drugs added/updated to pharmacy successfully!'], 201);
+        }
+
+        return redirect()->back()->with('success', 'Drugs added/updated to pharmacy successfully!');
     }
 
     public function showPharmacies($pharmacist_id)
@@ -255,18 +273,25 @@ class PharmacistController extends Controller
 
         // return view('pharmacist.show_drugs', ["pharmacy" => $pharmacy, "drugs" => $drugs]);
     }
-    public function destroyDrug($pharmacyId, $drugId)
+    public function destroyDrug(Request $request, $pharmacyId, $drugId)
     {
         // dd($drugId);
-        $pharmacy_drug = PharmacyDrug::where(['pharmacy_id' => $pharmacyId, 'drug_id' => $drugId]);
+        $pharmacy_drug = PharmacyDrug::where('pharmacy_id', $pharmacyId)
+            ->where('drug_id', $drugId)
+            ->first();
+
         if ($pharmacy_drug) {
             $pharmacy_drug->delete();
-            return response()->json(['message' => "The Drug deleted successfully"], 201);
+            if ($request->expectsJson() || $request->ajax() || $request->is('api/*')) {
+                return response()->json(['message' => "The Drug deleted successfully"], 201);
+            }
+            return redirect()->back()->with('success', 'The Drug deleted successfully');
         } else {
-            return response()->json(['message' => "The Drug not found for this pharmacy"], 400);
+            if ($request->expectsJson() || $request->ajax() || $request->is('api/*')) {
+                return response()->json(['message' => "The Drug not found for this pharmacy"], 400);
+            }
+            return redirect()->back()->with('error', 'The Drug not found for this pharmacy');
         }
-
-        // return redirect()->back();
     }
 
     public function getAllDrugs()

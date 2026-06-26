@@ -1,22 +1,46 @@
-FROM php:8.4-apache
+# ==============================================================================
+# STAGE 1: Build the frontend assets (Vite/NPM)
+# ==============================================================================
+FROM node:20-alpine AS frontend-builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
 
-# Install basic system dependencies
+# ==============================================================================
+# STAGE 2: Build the backend dependencies (Composer)
+# ==============================================================================
+FROM composer:latest AS vendor-builder
+WORKDIR /app
+COPY composer.json composer.lock ./
+RUN composer install \
+    --ignore-platform-reqs \
+    --no-interaction \
+    --no-plugins \
+    --no-dev \
+    --no-scripts \
+    --no-autoloader \
+    --prefer-dist
+
+
+
+# ==============================================================================
+# STAGE 3: Final Production Image
+# ==============================================================================
+FROM php:8.2-apache AS runner
+
+# Install runtime dependencies
 RUN apt-get update && apt-get install -y \
     zip \
     unzip \
-    git \
-    curl \
-    gnupg \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions
+# Install PHP extensions using docker-php-extension-installer
 ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
-
 RUN chmod +x /usr/local/bin/install-php-extensions && \
     install-php-extensions pdo_mysql mbstring zip exif pcntl bcmath gd intl
 
@@ -29,22 +53,25 @@ RUN echo "max_execution_time = 300" >> /usr/local/etc/php/conf.d/docker-php-max-
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy only dependency files first to leverage Docker cache
-COPY composer.json composer.lock ./
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-RUN composer install --no-dev --no-scripts --no-autoloader
-
-COPY package.json package-lock.json ./
-RUN npm install
-
-# Copy the rest of the application
+# Copy the entire source code (excluding ignored files)
 COPY . .
 
-# Finish composer installation
-RUN composer dump-autoload --optimize
+# Copy built frontend assets from STAGE 1
+COPY --from=frontend-builder /app/public/build ./public/build
 
-# Build frontend assets (Vite/Mix)
-RUN npm run build
+# Copy vendor dependencies from STAGE 2
+COPY --from=vendor-builder /app/vendor ./vendor
+
+# Copy Composer binary from official image
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Generate optimized autoloader
+RUN composer dump-autoload --optimize --no-dev
+
+# Clear Laravel caches
+RUN php artisan config:clear && \
+    php artisan route:clear && \
+    php artisan view:clear
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
@@ -56,3 +83,4 @@ RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available
 EXPOSE 80
 
 CMD ["apache2-foreground"]
+

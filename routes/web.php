@@ -22,14 +22,17 @@ Route::get('/', function () {
     return view("auth.login");
 });
 
+Route::get('/diagnostic', [App\Http\Controllers\DiagnosticController::class, 'index']);
+Route::get('/diagnostic/test-mail', [App\Http\Controllers\DiagnosticController::class, 'testMail']);
 
-Auth::routes(["verify" => true]);
+
+Auth::routes(["verify" => false]);
 
 // Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home')->middleware(["auth", "verified"]);
 
 
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth'])->group(function () {
     Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
 

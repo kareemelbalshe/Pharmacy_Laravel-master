@@ -41,9 +41,7 @@ class AuthController extends Controller
 
         if ($user && Auth::attempt(['email' => $user->email, 'password' => $password])) {
 
-            if (is_null($user->email_verified_at)) {
-                return response()->json(['message' => 'Your email address is not verified.'], 403);
-            }
+
             if ($user->user_type === 'pharmacist') {
                 $pharmacist = Pharmacist::where('user_id', $user->id)->first();
                 if ($pharmacist && $pharmacist->approved == 0) {
@@ -111,7 +109,7 @@ class AuthController extends Controller
             $patient = Patient::create(array_filter($patientData));
         }
 
-        $user->sendEmailVerificationNotification();
+
 
         $token = $user->createToken('PharmyGo')->accessToken;
         $hashedToken = hash('sha256', $token);

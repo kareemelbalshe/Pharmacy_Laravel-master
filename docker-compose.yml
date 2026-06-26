@@ -10,7 +10,7 @@ services:
     restart: unless-stopped
     tty: true
     ports:
-      - "8080:80"
+      - "8081:80"
     environment:
       - APP_ENV=local
       - APP_DEBUG=true
@@ -25,10 +25,10 @@ services:
       - DB_SSL_VERIFY=false
       - MAIL_MAILER=smtp
       - MAIL_HOST=smtp.gmail.com
-      - MAIL_PORT=587
+      - MAIL_PORT=465
       - MAIL_USERNAME=kareemelbalshe1234@gmail.com
       - MAIL_PASSWORD=laolrbpbmffuvdtf
-      - MAIL_ENCRYPTION=tls
+      - MAIL_ENCRYPTION=ssl
     volumes:
       - ./:/var/www/html
       - /var/www/html/vendor
